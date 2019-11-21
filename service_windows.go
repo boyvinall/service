@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -144,6 +145,10 @@ func (ws *windowsService) String() string {
 	return ws.Name
 }
 
+func (ws *windowsService) Platform() string {
+	return version
+}
+
 func (ws *windowsService) setError(err error) {
 	ws.errSync.Lock()
 	defer ws.errSync.Unlock()
@@ -217,8 +222,10 @@ func (ws *windowsService) Install() error {
 	defer s.Close()
 	err = eventlog.InstallAsEventCreate(ws.Name, eventlog.Error|eventlog.Warning|eventlog.Info)
 	if err != nil {
-		s.Delete()
-		return fmt.Errorf("InstallAsEventCreate() failed: %s", err)
+		if !strings.Contains(err.Error(), "exists") {
+			s.Delete()
+			return fmt.Errorf("SetupEventLogSource() failed: %s", err)
+		}
 	}
 	return nil
 }
